@@ -40,6 +40,7 @@ public class SystemUtils {
     private static final Logger logger = LoggerFactory.getLogger(SystemUtils.class);
 
     /**
+     * 单机或者集群模式
      * Standalone mode or not
      */
     public static boolean STANDALONE_MODE = Boolean.getBoolean(STANDALONE_MODE_PROPERTY_NAME);

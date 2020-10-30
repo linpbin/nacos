@@ -54,7 +54,7 @@ public class BeatReactor {
                 return thread;
             }
         });
-
+        // 创建一个立即执行的任务
         executorService.schedule(new BeatProcessor(), 0, TimeUnit.MILLISECONDS);
     }
 
@@ -106,6 +106,7 @@ public class BeatReactor {
 
         @Override
         public void run() {
+            // 发送心跳，返回心跳检测周期
             long result = serverProxy.sendBeat(beatInfo);
             beatInfo.setScheduled(false);
             if (result > 0) {

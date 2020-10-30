@@ -57,9 +57,9 @@ public class NacosDefaultPropertySourceEnvironmentPostProcessor implements Envir
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
-
+        // 获取资源加载器
         ResourceLoader resourceLoader = getResourceLoader(application);
-
+        // 将nacos-default.properties的属性加载到MutablePropertySources里面
         processPropertySource(environment, resourceLoader);
 
     }
@@ -87,6 +87,13 @@ public class NacosDefaultPropertySourceEnvironmentPostProcessor implements Envir
         }
     }
 
+    /**
+     * 加载nacos-default.properties的属性
+     *
+     * @param resourceLoader
+     * @return
+     * @throws IOException
+     */
     private PropertySource buildPropertySource(ResourceLoader resourceLoader) throws IOException {
         CompositePropertySource propertySource = new CompositePropertySource(PROPERTY_SOURCE_NAME);
         appendPropertySource(propertySource, resourceLoader);

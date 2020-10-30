@@ -26,6 +26,9 @@ public class UtilAndComs {
 
     public static String NACOS_URL_BASE = WEB_CONTEXT + "/v1/ns";
 
+    /**
+     * 实例注册的url
+     */
     public static String NACOS_URL_INSTANCE = NACOS_URL_BASE + "/instance";
 
     public static final String ENCODING = "UTF-8";

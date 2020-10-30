@@ -35,14 +35,26 @@ public class ServiceInfo {
     private String jsonFromServer = EMPTY;
     public static final String SPLITER = "@@";
 
+    /**
+     * 服务名称
+     */
     private String name;
 
+    /**
+     * 服务所在组名称
+     */
     private String groupName;
 
+    /**
+     * 集群
+     */
     private String clusters;
 
     private long cacheMillis = 1000L;
 
+    /**
+     * 实例列表
+     */
     @JSONField(name = "hosts")
     private List<Instance> hosts = new ArrayList<Instance>();
 
@@ -190,7 +202,7 @@ public class ServiceInfo {
         ServiceInfo serviceInfo = new ServiceInfo();
         int maxSegCount = 3;
         String[] segs = key.split(Constants.SERVICE_INFO_SPLITER);
-        if (segs.length == maxSegCount -1) {
+        if (segs.length == maxSegCount - 1) {
             serviceInfo.setGroupName(segs[0]);
             serviceInfo.setName(segs[1]);
         } else if (segs.length == maxSegCount) {

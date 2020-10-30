@@ -15,12 +15,13 @@
  */
 package com.alibaba.nacos.api.naming.listener;
 
-import java.util.List;
-
 import com.alibaba.nacos.api.naming.pojo.Instance;
+
+import java.util.List;
 
 /**
  * Naming Event
+ * naming事件对象，Event的具体实现
  *
  * @author nkorange
  */

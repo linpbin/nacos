@@ -44,6 +44,9 @@ import java.util.concurrent.*;
 import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
 
 /**
+ * 服务端的代理，用于客户端与服务端的通信，封装了与服务端的操作
+ * 包括服务注册与移除、服务心跳检查、获取服务列表功能
+ *
  * @author nkorange
  */
 public class NamingProxy {
@@ -56,10 +59,19 @@ public class NamingProxy {
 
     private String endpoint;
 
+    /**
+     * 单机模式时，保存服务器的地址
+     */
     private String nacosDomain;
 
+    /**
+     * 服务器列表
+     */
     private List<String> serverList;
 
+    /**
+     * 服务器列表，从endpoint提供的地址动态获取服务器列表
+     */
     private List<String> serversFromEndpoint = new ArrayList<String>();
 
     private long lastSrvRefTime = 0L;
@@ -107,6 +119,11 @@ public class NamingProxy {
         refreshSrvIfNeed();
     }
 
+    /**
+     * 获取注册中心列表
+     *
+     * @return
+     */
     public List<String> getServerListFromEndpoint() {
 
         try {
@@ -136,6 +153,10 @@ public class NamingProxy {
         return null;
     }
 
+    /**
+     * 获取服务列表，从endpoint提供的地址获取服务列表
+     * 每30秒执行一次
+     */
     private void refreshSrvIfNeed() {
         try {
 
@@ -165,6 +186,15 @@ public class NamingProxy {
         }
     }
 
+    /**
+     * 注册实例
+     * 将实例注册到服务列表上
+     *
+     * @param serviceName
+     * @param groupName
+     * @param instance
+     * @throws NacosException
+     */
     public void registerService(String serviceName, String groupName, Instance instance) throws NacosException {
 
         NAMING_LOGGER.info("[REGISTER-SERVICE] {} registering service {} with instance: {}",
@@ -187,6 +217,14 @@ public class NamingProxy {
 
     }
 
+    /**
+     * 取消注册
+     * 将实例从服务列表移除
+     *
+     * @param serviceName
+     * @param instance
+     * @throws NacosException
+     */
     public void deregisterService(String serviceName, Instance instance) throws NacosException {
 
         NAMING_LOGGER.info("[DEREGISTER-SERVICE] {} deregistering service {} with instance: {}",
@@ -203,6 +241,16 @@ public class NamingProxy {
         reqAPI(UtilAndComs.NACOS_URL_INSTANCE, params, HttpMethod.DELETE);
     }
 
+    /**
+     * 获取订阅者列表
+     *
+     * @param serviceName
+     * @param clusters
+     * @param udpPort
+     * @param healthyOnly
+     * @return
+     * @throws NacosException
+     */
     public String queryList(String serviceName, String clusters, int udpPort, boolean healthyOnly)
         throws NacosException {
 
@@ -236,6 +284,11 @@ public class NamingProxy {
         return 0L;
     }
 
+    /**
+     * 服务健康检查
+     *
+     * @return
+     */
     public boolean serverHealthy() {
 
         try {
@@ -308,6 +361,16 @@ public class NamingProxy {
         return callServer(api, params, curServer, HttpMethod.GET);
     }
 
+    /**
+     * 发送请求注册实例到server上
+     *
+     * @param api
+     * @param params
+     * @param curServer
+     * @param method
+     * @return
+     * @throws NacosException
+     */
     public String callServer(String api, Map<String, String> params, String curServer, String method)
         throws NacosException {
         long start = System.currentTimeMillis();
@@ -362,6 +425,7 @@ public class NamingProxy {
             int index = random.nextInt(servers.size());
 
             for (int i = 0; i < servers.size(); i++) {
+                // 随机注册到server注册中心
                 String server = servers.get(index);
                 try {
                     return callServer(api, params, server, method);
@@ -379,7 +443,7 @@ public class NamingProxy {
             throw new IllegalStateException("failed to req API:" + api + " after all servers(" + servers + ") tried: "
                 + exception.getMessage());
         }
-
+        // 失败重试3次
         for (int i = 0; i < UtilAndComs.REQUEST_DOMAIN_RETRY_COUNT; i++) {
             try {
                 return callServer(api, params, nacosDomain);
