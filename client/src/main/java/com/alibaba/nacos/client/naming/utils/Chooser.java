@@ -110,6 +110,7 @@ public class Chooser<K, T> {
                 }
 
                 items.add(item.item());
+                // 判断是否合法
                 if (Double.isInfinite(weight)) {
                     weight = 10000.0D;
                 }

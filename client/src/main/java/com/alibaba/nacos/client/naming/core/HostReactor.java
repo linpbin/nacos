@@ -32,6 +32,8 @@ import java.util.concurrent.*;
 import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
 
 /**
+ * 用于获取、保存、更新各Service实例信息
+ *
  * @author xuanyin
  */
 public class HostReactor {
@@ -42,6 +44,9 @@ public class HostReactor {
 
     private final Map<String, ScheduledFuture<?>> futureMap = new HashMap<String, ScheduledFuture<?>>();
 
+    /**
+     * 服务缓存map
+     */
     private Map<String, ServiceInfo> serviceInfoMap;
 
     private Map<String, Object> updatingMap;
@@ -85,6 +90,7 @@ public class HostReactor {
         }
 
         this.updatingMap = new ConcurrentHashMap<String, Object>();
+        // 故障转移
         this.failoverReactor = new FailoverReactor(this, cacheDir);
         this.pushReceiver = new PushReceiver(this);
     }
@@ -97,6 +103,12 @@ public class HostReactor {
         return executor.schedule(task, DEFAULT_DELAY, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * 更新服务
+     *
+     * @param json
+     * @return
+     */
     public ServiceInfo processServiceJSON(String json) {
         ServiceInfo serviceInfo = JSON.parseObject(json, ServiceInfo.class);
         ServiceInfo oldService = serviceInfoMap.get(serviceInfo.getKey());
@@ -110,21 +122,23 @@ public class HostReactor {
                 NAMING_LOGGER.warn("out of date data received, old-t: " + oldService.getLastRefTime()
                     + ", new-t: " + serviceInfo.getLastRefTime());
             }
-
+            // 更新服务
             serviceInfoMap.put(serviceInfo.getKey(), serviceInfo);
-
+            // 旧实例Map
             Map<String, Instance> oldHostMap = new HashMap<String, Instance>(oldService.getHosts().size());
             for (Instance host : oldService.getHosts()) {
                 oldHostMap.put(host.toInetAddr(), host);
             }
-
+            // 新实例Map
             Map<String, Instance> newHostMap = new HashMap<String, Instance>(serviceInfo.getHosts().size());
             for (Instance host : serviceInfo.getHosts()) {
                 newHostMap.put(host.toInetAddr(), host);
             }
-
+            // 新旧服务共有的实例
             Set<Instance> modHosts = new HashSet<Instance>();
+            // 新的实例
             Set<Instance> newHosts = new HashSet<Instance>();
+            // 删除的实例
             Set<Instance> remvHosts = new HashSet<Instance>();
 
             List<Map.Entry<String, Instance>> newServiceHosts = new ArrayList<Map.Entry<String, Instance>>(
@@ -177,11 +191,14 @@ public class HostReactor {
             serviceInfo.setJsonFromServer(json);
 
             if (newHosts.size() > 0 || remvHosts.size() > 0 || modHosts.size() > 0) {
+                // 更新服务信息
                 eventDispatcher.serviceChanged(serviceInfo);
+                // 更新缓存
                 DiskCache.write(serviceInfo, cacheDir);
             }
 
         } else {
+            // 新添加的服务
             NAMING_LOGGER.info("new ips(" + serviceInfo.ipCount() + ") service: " + serviceInfo.getName() + " -> " + JSON
                 .toJSONString(serviceInfo.getHosts()));
             serviceInfoMap.put(serviceInfo.getKey(), serviceInfo);
@@ -198,6 +215,13 @@ public class HostReactor {
         return serviceInfo;
     }
 
+    /**
+     * 获取已存在的服务
+     *
+     * @param serviceName
+     * @param clusters
+     * @return
+     */
     private ServiceInfo getSerivceInfo0(String serviceName, String clusters) {
 
         String key = ServiceInfo.getKey(serviceName, clusters);
@@ -205,6 +229,14 @@ public class HostReactor {
         return serviceInfoMap.get(key);
     }
 
+    /**
+     * 从服务器获取服务信息
+     *
+     * @param serviceName
+     * @param clusters
+     * @return
+     * @throws NacosException
+     */
     public ServiceInfo getServiceInfoDirectlyFromServer(final String serviceName, final String clusters) throws NacosException {
         String result = serverProxy.queryList(serviceName, clusters, 0, false);
         if (StringUtils.isNotEmpty(result)) {
@@ -213,6 +245,13 @@ public class HostReactor {
         return null;
     }
 
+    /**
+     * 获取服务信息
+     *
+     * @param serviceName
+     * @param clusters
+     * @return
+     */
     public ServiceInfo getServiceInfo(final String serviceName, final String clusters) {
 
         NAMING_LOGGER.debug("failover-mode: " + failoverReactor.isFailoverSwitch());
@@ -266,12 +305,20 @@ public class HostReactor {
         }
     }
 
+    /**
+     * 获取最新的服务信息并更新服务
+     *
+     * @param serviceName
+     * @param clusters
+     */
     public void updateServiceNow(String serviceName, String clusters) {
+        //获取旧服务
         ServiceInfo oldService = getSerivceInfo0(serviceName, clusters);
         try {
-
+            // 查询服务列表
             String result = serverProxy.queryList(serviceName, clusters, pushReceiver.getUDPPort(), false);
             if (StringUtils.isNotEmpty(result)) {
+                // 更新服务
                 processServiceJSON(result);
             }
         } catch (Exception e) {
@@ -293,6 +340,9 @@ public class HostReactor {
         }
     }
 
+    /**
+     * 更新服务
+     */
     public class UpdateTask implements Runnable {
         long lastRefTime = Long.MAX_VALUE;
         private String clusters;
@@ -306,9 +356,11 @@ public class HostReactor {
         @Override
         public void run() {
             try {
+                // 获取已有的服务信息
                 ServiceInfo serviceObj = serviceInfoMap.get(ServiceInfo.getKey(serviceName, clusters));
 
                 if (serviceObj == null) {
+                    // 获取最新的服务信息并更新
                     updateServiceNow(serviceName, clusters);
                     executor.schedule(this, DEFAULT_DELAY, TimeUnit.MILLISECONDS);
                     return;

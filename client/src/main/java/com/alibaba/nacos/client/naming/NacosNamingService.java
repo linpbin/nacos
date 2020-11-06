@@ -103,6 +103,7 @@ public class NacosNamingService implements NamingService {
         serverProxy.setProperties(properties);
         // 初始化BeatReactor（心跳反应），不断检测心跳对象，并发送心跳包
         beatReactor = new BeatReactor(serverProxy, initClientBeatThreadCount(properties));
+        // 初始化HostReactor，用于更新、获取、保存服务信息
         hostReactor = new HostReactor(eventDispatcher, serverProxy, cacheDir, isLoadCacheAtStart(properties), initPollingThreadCount(properties));
     }
 
@@ -308,7 +309,7 @@ public class NacosNamingService implements NamingService {
             // 新增一个心跳检测的基本信息，心跳检测时需要用到这些基本信息
             beatReactor.addBeatInfo(NamingUtils.getGroupedName(serviceName, groupName), beatInfo);
         }
-        // 向注册中心注册服务
+        // 向注册中心注册服务实例
         serverProxy.registerService(NamingUtils.getGroupedName(serviceName, groupName), groupName, instance);
     }
 
@@ -341,7 +342,7 @@ public class NacosNamingService implements NamingService {
     public void deregisterInstance(String serviceName, String groupName, Instance instance) throws NacosException {
         // 移除心跳检查
         beatReactor.removeBeatInfo(NamingUtils.getGroupedName(serviceName, groupName), instance.getIp(), instance.getPort());
-        // 发送请求移除实例
+        // 发送请求移除服务实例
         serverProxy.deregisterService(NamingUtils.getGroupedName(serviceName, groupName), instance);
     }
 

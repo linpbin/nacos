@@ -29,6 +29,8 @@ import java.util.concurrent.ThreadFactory;
 import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
 
 /**
+ * 用于接收Nacos服务端的推送，初始化时会创建DatagramSocket使用UDP的方式接收推送
+ *
  * @author xuanyin
  */
 public class PushReceiver implements Runnable {

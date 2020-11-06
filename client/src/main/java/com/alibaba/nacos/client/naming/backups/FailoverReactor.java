@@ -34,6 +34,8 @@ import java.util.concurrent.*;
 import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
 
 /**
+ * 用于故障转移
+ *
  * @author nkorange
  */
 public class FailoverReactor {
@@ -63,9 +65,9 @@ public class FailoverReactor {
     private static final long DAY_PERIOD_MINUTES = 24 * 60;
 
     public void init() {
-
+        // 判断是否开启故障转移
         executorService.scheduleWithFixedDelay(new SwitchRefresher(), 0L, 5000L, TimeUnit.MILLISECONDS);
-
+        // 每24小时将服务信息本地文件缓存一份
         executorService.scheduleWithFixedDelay(new DiskFileWriter(), 30, DAY_PERIOD_MINUTES, TimeUnit.MINUTES);
 
         // backup file on startup if failover directory is empty.
@@ -98,12 +100,16 @@ public class FailoverReactor {
         return startDT.getTime();
     }
 
+    /**
+     * 判断是否开启故障转移
+     */
     class SwitchRefresher implements Runnable {
         long lastModifiedMillis = 0L;
 
         @Override
         public void run() {
             try {
+                // 读取00-00---000-VIPSRV_FAILOVER_SWITCH-000---00-00文件判断是否开启故障转移
                 File switchFile = new File(failoverDir + UtilAndComs.FAILOVER_SWITCH);
                 if (!switchFile.exists()) {
                     switchParams.put("failover-mode", "false");
@@ -211,6 +217,9 @@ public class FailoverReactor {
         }
     }
 
+    /**
+     * 缓存服务信息
+     */
     class DiskFileWriter extends TimerTask {
         public void run() {
             Map<String, ServiceInfo> map = hostReactor.getServiceInfoMap();

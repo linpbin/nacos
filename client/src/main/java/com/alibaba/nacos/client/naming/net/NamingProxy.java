@@ -120,7 +120,8 @@ public class NamingProxy {
     }
 
     /**
-     * 获取注册中心列表
+     * 当传入endpoint时，从endpoint提供的地址获取服务列表
+     * 获取服务列表
      *
      * @return
      */

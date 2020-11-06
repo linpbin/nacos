@@ -50,7 +50,7 @@ public class Balancer {
         }
 
         public static Instance selectHost(ServiceInfo dom) {
-
+            // 获取服务的全部实例
             List<Instance> hosts = selectAll(dom);
 
             if (CollectionUtils.isEmpty(hosts)) {
@@ -67,6 +67,7 @@ public class Balancer {
 
     /**
      * Return one host from the host list by random-weight.
+     * 根据随机权重返回单个实例
      *
      * @param hosts The list of the host.
      * @return The random-weight result of the host
